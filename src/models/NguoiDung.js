@@ -8,8 +8,8 @@ const nguoiDungSchema = new mongoose.Schema({
     uppercase: true, 
     default: () => crypto.randomBytes(3).toString("hex").toUpperCase() 
   },
-  hoTen: { type: String, required: true, trim: true },
-  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  hoTen: { type: String, trim: true },
+  email: { type: String, unique: true, lowercase: true, trim: true },
   soDienThoai: { type: String, unique: true, sparse: true },
   password: { type: String, required: true },
   avatar: { type: String, default: null },

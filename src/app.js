@@ -12,6 +12,10 @@ const connectDB = require("./config/connectDB");
 const uploadImageRoute = require("./routes/uploadImageRoute");
 const uploadVideoRoute = require("./routes/uploadVideoRoute");
 const authRouter = require("./routes/authRouter");
+const sliderRoutes = require("./routes/sliderRoutes");
+const theLoaiSPRoutes = require("./routes/theLoaiSPRoutes");
+const voucherRoutes = require("./routes/voucherRoutes");
+const shippingRoutes = require("./routes/shippingRoutes");
 
 // ==========================================
 
@@ -24,7 +28,7 @@ connectDB();
 
 // ================= CORS =================
 const allowedOrigins = [
-  "http://localhost:3173",
+  "http://localhost:2002",
 ];
 
 app.use(
@@ -64,6 +68,10 @@ const routes = [
   { path: "/api/upload", router: uploadImageRoute },
   { path: "/api/upload-video", router: uploadVideoRoute },
   { path: '/api/auth', router: authRouter },
+  { path: '/api/sliders', router: sliderRoutes },
+  { path: '/api/loaisps', router: theLoaiSPRoutes },
+  { path: '/api/vouchers', router: voucherRoutes },
+  { path: '/api/shipping', router: shippingRoutes },
 
 ];
 
