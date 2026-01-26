@@ -16,6 +16,7 @@ const sliderRoutes = require("./routes/sliderRoutes");
 const theLoaiSPRoutes = require("./routes/theLoaiSPRoutes");
 const voucherRoutes = require("./routes/voucherRoutes");
 const shippingRoutes = require("./routes/shippingRoutes");
+const mauSacRoutes = require("./routes/mauSacRoutes");
 
 // ==========================================
 
@@ -72,6 +73,7 @@ const routes = [
   { path: '/api/loaisps', router: theLoaiSPRoutes },
   { path: '/api/vouchers', router: voucherRoutes },
   { path: '/api/shipping', router: shippingRoutes },
+  { path: '/api/colors', router: mauSacRoutes },
 
 ];
 
