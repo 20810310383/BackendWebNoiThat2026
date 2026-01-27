@@ -17,6 +17,7 @@ const theLoaiSPRoutes = require("./routes/theLoaiSPRoutes");
 const voucherRoutes = require("./routes/voucherRoutes");
 const shippingRoutes = require("./routes/shippingRoutes");
 const mauSacRoutes = require("./routes/mauSacRoutes");
+const chinhSachRoutes = require("./routes/chinhSachRoutes");
 
 // ==========================================
 
@@ -74,6 +75,7 @@ const routes = [
   { path: '/api/vouchers', router: voucherRoutes },
   { path: '/api/shipping', router: shippingRoutes },
   { path: '/api/colors', router: mauSacRoutes },
+  { path: '/api/chinhsach', router: chinhSachRoutes },
 
 ];
 
