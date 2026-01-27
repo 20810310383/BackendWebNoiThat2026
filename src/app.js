@@ -20,6 +20,7 @@ const mauSacRoutes = require("./routes/mauSacRoutes");
 const chinhSachRoutes = require("./routes/chinhSachRoutes");
 const sanPhamRoutes = require("./routes/sanPhamRoutes");
 const nguoiDungRoutes = require("./routes/nguoiDungRoutes");
+const yeuThichRoute = require("./routes/yeuThichRoute");
 
 // ==========================================
 
@@ -80,6 +81,7 @@ const routes = [
   { path: '/api/chinhsach', router: chinhSachRoutes },
   { path: '/api/sanpham', router: sanPhamRoutes },
   { path: '/api/nguoidung', router: nguoiDungRoutes },
+  { path: '/api/yeuthich', router: yeuThichRoute },
 
 ];
 
