@@ -73,7 +73,7 @@ exports.getProductById = async (req, res) => {
       { maSanPham: code.toUpperCase() }, // Tìm theo mã (ép in hoa cho chuẩn)
       { $inc: { soLuotXem: 1 } },
       { new: true }
-    ).populate("theLoai mauSac nguoiDang", "tenTheLoai tenMauSac maMauSac hoTen");
+    ).populate("theLoai mauSac nguoiDang", "tenTheLoai maLoaiSanPham tenMauSac maMauSac hoTen");
     
     if (!product) {
       return res.status(404).json({ message: "Không tìm thấy sản phẩm với mã này" });
@@ -127,5 +127,35 @@ exports.deleteProduct = async (req, res) => {
     res.status(200).json({ message: "Đã xóa sản phẩm" });
   } catch (error) {
     res.status(500).json({ message: "Lỗi xóa", error });
+  }
+};
+
+exports.getRelatedProducts = async (req, res) => {
+  try {
+    const { maLoaiSP, currentMaSP } = req.params;
+
+    // 1. Tìm ID của thể loại dựa trên maLoaiSP (ví dụ: A02BC)
+    const theLoai = await TheLoaiSP.findOne({ maLoaiSanPham: maLoaiSP });
+    
+    if (!theLoai) {
+      return res.status(404).json({ message: "Không tìm thấy danh mục này" });
+    }
+
+    // 2. Tìm các sản phẩm cùng thể loại nhưng bỏ qua sản phẩm đang xem
+    const relatedProducts = await SanPham.find({
+      theLoai: theLoai._id,
+      maSanPham: { $ne: currentMaSP }, // $ne = Not Equal (Không bao gồm SP hiện tại)
+      isShow: true
+    })
+    // .select("tieuDe anhDaiDien phanTramGiamGia bienThe maSanPham") // Chỉ lấy field cần thiết
+    // .limit(4) // Thường lấy 4 hoặc 8 sản phẩm để chia grid cho đẹp
+    .populate("theLoai mauSac nguoiDang", "tenTheLoai maLoaiSanPham tenMauSac maMauSac hoTen")
+    .sort({ createdAt: -1 })
+    .lean();
+
+
+    res.status(200).json(relatedProducts);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi lấy sản phẩm liên quan", error: error.message });
   }
 };
