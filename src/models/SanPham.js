@@ -19,6 +19,7 @@ const sanPhamSchema = new mongoose.Schema({
   anhDaiDien: { type: String, required: true },
   anhSlider: [{ type: String }], // Mảng nhiều ảnh
   theLoai: { type: mongoose.Schema.Types.ObjectId, ref: 'TheLoaiSP' },
+  nguoiDang: { type: mongoose.Schema.Types.ObjectId, ref: 'NguoiDung' },
   
   phanTramGiamGia: { type: Number, default: 0 },
   moTaNgan: { type: String, trim: true },
