@@ -32,6 +32,7 @@ const sanPhamSchema = new mongoose.Schema({
   bienThe: [bienTheSchema],
   
   soLuotXem: { type: Number, default: 0 },
+  soLuongBan: { type: Number, default: 0 },
   isShow: { type: Boolean, default: true }
 }, { timestamps: true });
 

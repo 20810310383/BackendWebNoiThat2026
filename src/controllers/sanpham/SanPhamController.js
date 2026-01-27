@@ -1,21 +1,42 @@
 const SanPham = require("../../models/SanPham");
+const TheLoaiSP = require("../../models/TheLoaiSP");
 
 // 1. Lấy danh sách sản phẩm (Phân trang + Tìm kiếm + Lọc)
 exports.getAllProducts = async (req, res) => {
   try {
-    const { page = 1, limit = 10, search, theLoai, mauSac, minPrice, maxPrice, isShow } = req.query;
+    const { page = 1, limit = 10, search, theLoai, mauSac, minPrice, maxPrice, isShow, sort } = req.query;
     
     // Xây dựng bộ lọc
     let query = {};
+    let sortQuery = { createdAt: -1 }; // Mặc định: Mới nhất
+
+    if (sort === "priceAsc") {
+      sortQuery = { "bienThe.0.giaBan": 1 }; // Giá tăng dần
+    } else if (sort === "priceDesc") {
+      sortQuery = { "bienThe.0.giaBan": -1 }; // Giá giảm dần
+    } else if (sort === "default") {
+      sortQuery = { createdAt: -1 };
+    }
+
     if (search) {
       query.$or = [
         { tieuDe: { $regex: search, $options: "i" } },
         { maSanPham: { $regex: search, $options: "i" } }
       ];
     }
-    if (theLoai) query.theLoai = theLoai;
+    if (theLoai) {
+      // Tìm xem maLoaiSanPham này ứng với _id nào
+      const category = await TheLoaiSP.findOne({ maLoaiSanPham: theLoai.toUpperCase() });
+      if (category) {
+        query.theLoai = category._id; // Gán ID thực tế cho query
+      } else {
+        // Nếu mã không tồn tại, trả về rỗng luôn để không bị lỗi Cast
+        return res.status(200).json({ products: [], totalProducts: 0 });
+      }
+    }
     if (mauSac) query.mauSac = { $in: [mauSac] };
     if (isShow !== undefined) query.isShow = isShow;
+    
     
     // Lọc theo giá (Dựa trên giá của biến thể đầu tiên)
     if (minPrice || maxPrice) {
@@ -28,7 +49,7 @@ exports.getAllProducts = async (req, res) => {
     const products = await SanPham.find(query)
       .populate("theLoai")
       .populate("mauSac", "tenMauSac maMauSac")
-      .sort({ createdAt: -1 })
+      .sort(sortQuery)
       .limit(limit * 1)
       .skip((page - 1) * limit);
 
