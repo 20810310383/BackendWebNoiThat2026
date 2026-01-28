@@ -41,8 +41,11 @@ exports.getGioHangCuaToi = async (req, res) => {
   try {
     const data = await GioHang.find({ nguoiDung: req.user._id })
       .populate({
-        path: "sanPham",
-        select: "tieuDe anhDaiDien phanTramGiamGia bienThe", // Lấy các field cần thiết để tính giá
+        path: "sanPham", // Populate sản phẩm
+        populate: {
+          path: "theLoai", // Tiếp tục populate Thể loại bên trong Sản phẩm
+          select: "tenTheLoai maLoaiSanPham" // Chỉ lấy các trường cần thiết
+        }
       })
       .sort({ createdAt: -1 });
 
