@@ -4,6 +4,7 @@ const gioHangSchema = new mongoose.Schema({
   nguoiDung: { type: mongoose.Schema.Types.ObjectId, ref: 'NguoiDung', required: true },
   sanPham: { type: mongoose.Schema.Types.ObjectId, ref: 'SanPham', required: true },
   kichThuocDaChon: { type: String },
+  bienTheDaChon: { type: mongoose.Schema.Types.ObjectId },
   mauSacDaChon: { type: String },
   soLuong: { type: Number, default: 1 },
 }, { timestamps: true });
