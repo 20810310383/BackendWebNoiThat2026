@@ -1,4 +1,5 @@
 const GioHang = require("../../models/GioHang");
+const MaGiamGia = require("../../models/MaGiamGia");
 
 // 1. THÊM VÀO GIỎ HÀNG
 exports.themGioHang = async (req, res) => {
@@ -91,4 +92,53 @@ exports.lamTranhGioHang = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Lỗi làm trống giỏ hàng" });
   }
+};
+
+//  ÁP DỤNG VOUCHER
+exports.applyVoucher = async (req, res) => {
+  try {
+    const { code, totalOrder } = req.body;
+
+    const voucher = await MaGiamGia.findOne({ 
+      code: code.toUpperCase(),
+    });
+
+    if (!voucher) {
+      return res.status(404).json({ message: "Mã giảm giá không tồn tại!" });
+    }
+
+    // Kiểm tra hạn sử dụng
+    if (voucher.hanSuDung && new Date(voucher.hanSuDung) < new Date()) {
+      return res.status(400).json({ message: "Mã giảm giá đã hết hạn!" });
+    }
+
+    // Kiểm tra số lượng mã
+    if (voucher.soLuongMa <= 0) {
+      return res.status(400).json({ message: "Mã giảm giá đã hết lượt sử dụng!" });
+    }
+
+    // Kiểm tra điều kiện đơn hàng tối thiểu
+    if (totalOrder < voucher.dieuKienApDung) {
+      return res.status(400).json({ 
+        message: `Mã này chỉ áp dụng cho đơn hàng từ ${voucher.dieuKienApDung.toLocaleString()}đ` 
+      });
+    }
+
+    res.status(200).json({
+      message: "Áp dụng mã giảm giá thành công!",
+      data: {
+        code: voucher.code,
+        soTienGiam: voucher.soTienGiam,
+        voucherId: voucher._id
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi kiểm tra voucher" });
+  }
+};
+
+// HUỶ VOUCHER (Thực tế chỉ là xóa state ở Frontend, 
+// nhưng nếu bạn muốn log lại thì dùng hàm này)
+exports.removeVoucher = async (req, res) => {
+  res.status(200).json({ message: "Đã hủy áp dụng mã giảm giá" });
 };
