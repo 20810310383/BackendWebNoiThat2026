@@ -26,6 +26,7 @@ const gioHangRoute = require("./routes/gioHangRoute");
 const donHangRoute = require("./routes/donHangRoute");
 const theLoaiBVRoutes = require("./routes/theLoaiBVRoutes");
 const baiVietRoute = require("./routes/baiVietRoute");
+const noiDungUuDaiRoute = require("./routes/noiDungUuDaiRoute");
 
 // ==========================================
 
@@ -93,6 +94,7 @@ const routes = [
   { path: '/api/donhang', router: donHangRoute },
   { path: '/api/theloaibv', router: theLoaiBVRoutes },
   { path: '/api/baiviet', router: baiVietRoute },
+  { path: '/api/noidunguudai', router: noiDungUuDaiRoute },
 
 ];
 
