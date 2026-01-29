@@ -4,6 +4,7 @@ const MaGiamGia = require("../../models/MaGiamGia");
 const GioHang = require("../../models/GioHang");
 const { tinhPhiShipTuDongLogic } = require("../../utils/shipHelper");
 const SePayTransaction = require("../../models/SePayTransaction");
+const { default: mongoose } = require("mongoose");
 
 exports.taoDonHang = async (req, res) => {
   try {
@@ -98,10 +99,39 @@ exports.getDonHangCuaToi = async (req, res) => {
   res.status(200).json(data);
 };
 
-// Admin: Lấy toàn bộ đơn hàng
+// Admin: Lấy toàn bộ đơn hàng (Kèm Tìm kiếm & Lọc)
 exports.getAllDonHang = async (req, res) => {
-  const data = await DonHang.find().populate("nguoiDung", "hoTen email").sort({ createdAt: -1 });
-  res.status(200).json(data);
+  try {
+    const { search, trangThaiThanhToan, trangThaiVanChuyen } = req.query;
+    let query = {};
+
+    // 1. Tìm kiếm theo Mã đơn, Tên hoặc Số điện thoại
+    if (search) {
+      query.$or = [
+        { maDonHang: { $regex: search, $options: "i" } },
+        { "thongTinNhanHang.hoTen": { $regex: search, $options: "i" } },
+        { "thongTinNhanHang.soDienThoai": { $regex: search, $options: "i" } }
+      ];
+    }
+
+    // 2. Lọc theo trạng thái thanh toán
+    if (trangThaiThanhToan) {
+      query.trangThaiThanhToan = trangThaiThanhToan;
+    }
+
+    // 3. Lọc theo trạng thái vận chuyển
+    if (trangThaiVanChuyen) {
+      query.trangThaiVanChuyen = trangThaiVanChuyen;
+    }
+
+    const data = await DonHang.find(query)
+      .populate("nguoiDung", "hoTen email")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(data);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi lấy danh sách đơn hàng", error: error.message });
+  }
 };
 
 // Admin: Cập nhật trạng thái
@@ -290,5 +320,87 @@ exports.thanhToanOnlineSepay = async (req, res) => {
       message: error.message || "Internal Server Error",
       error: process.env.NODE_ENV === "development" ? error.stack : undefined,
     });
+  }
+};
+
+// --- THỐNG KÊ CHO ADMIN ---
+exports.getThongKeAdmin = async (req, res) => {
+  try {
+    const aggregate = await DonHang.aggregate([
+      {
+        $facet: {
+          // 1. Tổng quan các con số
+          "tongQuan": [
+            {
+              $group: {
+                _id: null,
+                tongDoanhThu: { $sum: "$tongThanhToan" },
+                tongDonHang: { $sum: 1 },
+                donThanhCong: {
+                  $sum: { $cond: [{ $eq: ["$trangThaiThanhToan", "Đã thanh toán"] }, 1, 0] }
+                }
+              }
+            }
+          ],
+          // 2. Doanh thu theo 7 ngày gần nhất
+          "doanhThuTheoNgay": [
+            {
+                $match: {
+                // Lấy từ 00:00:00 của 7 ngày trước theo giờ VN
+                createdAt: { $gte: new Date(new Date().setHours(0,0,0,0) - 6 * 24 * 60 * 60 * 1000) },
+                trangThaiThanhToan: "Đã thanh toán"
+                }
+            },
+            {
+                $group: {
+                _id: { $dateToString: { format: "%d-%m", date: "$createdAt", timezone: "Asia/Ho_Chi_Minh" } },
+                doanhThu: { $sum: "$tongThanhToan" } // Đặt tên là doanhThu (viết liền)
+                }
+            },
+            { $sort: { "_id": 1 } }
+            ],
+          // 3. Tỉ lệ trạng thái đơn hàng (Pie Chart)
+          "trangThaiDon": [
+            {
+              $group: {
+                _id: "$trangThaiVanChuyen",
+                count: { $sum: 1 }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    res.status(200).json(aggregate[0]);
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi thống kê admin", error: error.message });
+  }
+};
+
+// --- THỐNG KÊ CHO KHÁCH HÀNG ---
+exports.getThongKeKhachHang = async (req, res) => {
+  try {
+    const nguoiDungId = req.user._id;
+
+    const stats = await mongoose.model("DonHang").aggregate([
+      { $match: { nguoiDung: mongoose.Types.ObjectId(nguoiDungId) } },
+      {
+        $group: {
+          _id: null,
+          daChiTieu: {
+            $sum: { $cond: [{ $eq: ["$trangThaiThanhToan", "Đã thanh toán"] }, "$tongThanhToan", 0] }
+          },
+          tongDonHang: { $sum: 1 },
+          dangGiao: {
+            $sum: { $cond: [{ $eq: ["$trangThaiVanChuyen", "Đang giao"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    res.status(200).json(stats[0] || { daChiTieu: 0, tongDonHang: 0, dangGiao: 0 });
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi thống kê khách hàng", error: error.message });
   }
 };
