@@ -31,7 +31,7 @@ exports.getAllBaiViet = async (req, res) => {
 
     const total = await BaiViet.countDocuments(query);
     const data = await BaiViet.find(query)
-      .populate("theLoai", "tenTheLoai") // Lấy tên thể loại
+      .populate("theLoai") // Lấy tên thể loại
       .populate("tacGia", "hoTen avatar") // Lấy thông tin tác giả
       .sort({ createdAt: -1 }) // Bài mới nhất lên đầu
       .limit(limit * 1)
