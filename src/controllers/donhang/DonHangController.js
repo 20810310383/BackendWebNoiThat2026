@@ -171,8 +171,9 @@ exports.thanhToanOnlineSepay = async (req, res) => {
     console.log("💰 Số tiền:", sePayWebhookData.transferAmount);
 
     // 1️⃣ BẢO MẬT: Kiểm tra API Key từ SePay
-    const authorizationAPI = req.headers.authorization;
-
+    const authHeader = req.headers.authorization || "";
+    const authorizationAPI = authHeader.replace("Apikey ", "").trim();
+    
      console.log("📦 authorizationAPI:", authorizationAPI);
      console.log("📦 process.env.SEPAY_API_KEY:", process.env.SEPAY_API_KEY);
 
