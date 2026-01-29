@@ -39,7 +39,7 @@ connectDB();
 // ================= CORS =================
 const allowedOrigins = [
   "http://localhost:2002",
-  'http://bevishome.com'
+  'https://bevishome.com'
 ];
 
 app.use(
