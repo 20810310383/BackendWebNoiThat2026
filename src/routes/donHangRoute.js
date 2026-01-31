@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require("../middlewares/authMiddleware");
 const isAdmin = require("../middlewares/adminMiddleware");
-const { taoDonHang, getDonHangCuaToi, getAllDonHang, updateTrangThaiDonHang, thanhToanOnlineSepay, getThongKeAdmin, getThongKeKhachHang, taoDonHangVangLai, getDonHangKoLogin } = require("../controllers/donhang/DonHangController");
+const { taoDonHang, getDonHangCuaToi, getAllDonHang, updateTrangThaiDonHang, thanhToanOnlineSepay, getThongKeAdmin, getThongKeKhachHang, taoDonHangVangLai, getDonHangKoLogin, xoaDonHangAdmin } = require("../controllers/donhang/DonHangController");
 
 // Người dùng đặt hàng & xem đơn của mình
 router.post("/", protect, taoDonHang);
@@ -21,5 +21,7 @@ router.get("/admin/thong-ke", protect, isAdmin, getThongKeAdmin);
 
 // Route cho Khách hàng (Chỉ xem đơn của mình)
 router.get("/me/thong-ke", protect, getThongKeKhachHang);
+
+router.delete("/admin/delete/:id", protect, isAdmin, xoaDonHangAdmin);
 
 module.exports = router;

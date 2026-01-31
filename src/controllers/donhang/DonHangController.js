@@ -498,3 +498,29 @@ exports.getThongKeKhachHang = async (req, res) => {
     res.status(500).json({ message: "Lỗi thống kê khách hàng", error: error.message });
   }
 };
+
+// Controller xóa đơn hàng dành cho Admin
+exports.xoaDonHangAdmin = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1. Kiểm tra đơn hàng có tồn tại không
+    const donHang = await DonHang.findById(id);
+    if (!donHang) {
+      return res.status(404).json({ message: "Không tìm thấy đơn hàng cần xóa" });
+    }
+
+    // 2. Thực hiện xóa
+    await DonHang.findByIdAndDelete(id);
+
+    res.status(200).json({ 
+      message: `Đã xóa thành công đơn hàng ${donHang.maDonHang}`,
+      idDaXoa: id 
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      message: "Lỗi khi xóa đơn hàng", 
+      error: error.message 
+    });
+  }
+};
