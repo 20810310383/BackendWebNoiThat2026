@@ -9,7 +9,7 @@ const donHangSchema = new mongoose.Schema({
         default: () => crypto.randomBytes(3).toString("hex").toUpperCase() 
     },
 
-  nguoiDung: { type: mongoose.Schema.Types.ObjectId, ref: 'NguoiDung', required: true },
+  nguoiDung: { type: mongoose.Schema.Types.ObjectId, ref: 'NguoiDung' },
   
   // Snapshot sản phẩm lúc mua
   chiTietDonHang: [{

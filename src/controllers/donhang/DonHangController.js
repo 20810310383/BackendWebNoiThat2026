@@ -93,9 +93,102 @@ exports.taoDonHang = async (req, res) => {
   }
 };
 
+exports.taoDonHangVangLai = async (req, res) => {
+  try {
+    const { 
+      cartItems, 
+      thongTinNhanHang, 
+      maVoucher, 
+      phuongThucThanhToan 
+    } = req.body;
+
+    // KHÔNG CẦN: const nguoiDungId = req.user._id;
+
+    let tongTienHang = 0;
+    const chiTietDonHang = [];
+
+    // 1. Kiểm tra tồn kho và tính tiền (Giữ nguyên logic cũ)
+    for (const item of cartItems) {
+      const sp = await SanPham.findById(item.sanPhamId);
+      if (!sp) return res.status(404).json({ message: `Sản phẩm không tồn tại` });
+
+      const bienThe = sp.bienThe.find(bt => bt._id.toString() === item.bienTheId.toString());
+      if (!bienThe || bienThe.khoHang < item.soLuong) {
+        return res.status(400).json({ message: `Sản phẩm ${sp.tieuDe} đã hết hàng` });
+      }
+
+      const giaLucMua = Math.round(bienThe.giaBan * (1 - sp.phanTramGiamGia / 100));
+      tongTienHang += giaLucMua * item.soLuong;
+
+      chiTietDonHang.push({
+        sanPhamId: sp._id,
+        tenSanPham: sp.tieuDe,
+        anhDaiDien: sp.anhDaiDien,
+        kichThuoc: bienThe.kichThuoc,
+        mauSac: item.mauSac,
+        giaLucMua,
+        soLuong: item.soLuong
+      });
+    }
+
+    // 2. Tính phí ship (Giữ nguyên)
+    const shipResult = await tinhPhiShipTuDongLogic(tongTienHang);
+    const phiVanChuyen = shipResult.phiShip;
+
+    // 3. Xử lý Voucher (Giữ nguyên)
+    let soTienGiamGia = 0;
+    if (maVoucher) {
+      const voucher = await MaGiamGia.findOne({ code: maVoucher.toUpperCase() });
+      if (voucher && voucher.soLuongMa > 0 && tongTienHang >= voucher.dieuKienApDung) {
+        soTienGiamGia = voucher.soTienGiam;
+        await MaGiamGia.findByIdAndUpdate(voucher._id, { $inc: { soLuongMa: -1 } });
+      }
+    }
+
+    // 4. Tạo đơn hàng (nguoiDung sẽ là null)
+    const tongThanhToan = tongTienHang + phiVanChuyen - soTienGiamGia;
+    const donHangMoi = new DonHang({
+      nguoiDung: null, // 🌟 Đây là điểm khác biệt
+      chiTietDonHang,
+      tongTienHang,
+      phiVanChuyen,
+      soTienGiamGia,
+      tongThanhToan,
+      thongTinNhanHang,
+      phuongThucThanhToan: phuongThucThanhToan || 'COD' // Mặc định khách vãng lai thường dùng COD
+    });
+
+    await donHangMoi.save();
+
+    // 5. TRỪ KHO SẢN PHẨM (Giữ nguyên)
+    for (const item of cartItems) {
+      await SanPham.updateOne(
+        { _id: item.sanPhamId, "bienThe._id": item.bienTheId },
+        { $inc: { "bienThe.$.khoHang": -item.soLuong, soLuongBan: item.soLuong } }
+      );
+    }
+
+    // KHÔNG CẦN: await GioHang.deleteMany(...)
+
+    res.status(201).json({ 
+      message: "Đặt hàng thành công!", 
+      maDonHang: donHangMoi.maDonHang,
+      tongThanhToan: donHangMoi.tongThanhToan 
+    });
+
+  } catch (error) {
+    res.status(500).json({ message: "Lỗi tạo đơn hàng", error: error.message });
+  }
+};
+
 // Lấy đơn hàng cá nhân
 exports.getDonHangCuaToi = async (req, res) => {
   const data = await DonHang.find({ nguoiDung: req.user._id }).sort({ createdAt: -1 });
+  res.status(200).json(data);
+};
+exports.getDonHangKoLogin = async (req, res) => {
+  const { maDonHang } = req.query;
+  const data = await DonHang.find({ maDonHang }).sort({ createdAt: -1 });
   res.status(200).json(data);
 };
 

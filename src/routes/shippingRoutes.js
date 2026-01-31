@@ -9,6 +9,6 @@ router.post("/", protect, isAdmin, createShippingFee);
 router.put("/:id", protect, isAdmin, updateShippingFee);
 router.delete("/:id", protect, isAdmin, deleteShippingFee);
 
-router.post("/calculate", protect, tinhPhiShipThucTe);
+router.post("/calculate",  tinhPhiShipThucTe);
 
 module.exports = router;

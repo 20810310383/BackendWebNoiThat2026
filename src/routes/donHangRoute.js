@@ -2,11 +2,13 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require("../middlewares/authMiddleware");
 const isAdmin = require("../middlewares/adminMiddleware");
-const { taoDonHang, getDonHangCuaToi, getAllDonHang, updateTrangThaiDonHang, thanhToanOnlineSepay, getThongKeAdmin, getThongKeKhachHang } = require("../controllers/donhang/DonHangController");
+const { taoDonHang, getDonHangCuaToi, getAllDonHang, updateTrangThaiDonHang, thanhToanOnlineSepay, getThongKeAdmin, getThongKeKhachHang, taoDonHangVangLai, getDonHangKoLogin } = require("../controllers/donhang/DonHangController");
 
 // Người dùng đặt hàng & xem đơn của mình
 router.post("/", protect, taoDonHang);
+router.post("/dat-hang-nhanh", taoDonHangVangLai);
 router.get("/me", protect, getDonHangCuaToi);
+router.get("/me-kologin", getDonHangKoLogin);
 
 // Admin quản lý
 router.get("/admin/all", protect, isAdmin, getAllDonHang);
