@@ -132,16 +132,7 @@ exports.getAllProducts = async (req, res) => {
     //   query.theLoaiCon = { $in: targetConIds };
     // }
 
-    // if (theLoai) {
-    //   // Tìm xem maLoaiSanPham này ứng với _id nào
-    //   const category = await TheLoaiSP.findOne({ maLoaiSanPham: theLoai.toUpperCase() });
-    //   if (category) {
-    //     query.theLoai = category._id; // Gán ID thực tế cho query
-    //   } else {
-    //     // Nếu mã không tồn tại, trả về rỗng luôn để không bị lỗi Cast
-    //     return res.status(200).json({ products: [], totalProducts: 0 });
-    //   }
-    // }
+   
     if (theLoai) {
         // 1. Tìm xem maLoaiOng này ứng với _id nào
         const ong = await LoaiOng.findOne({ maLoaiOng: theLoai.toUpperCase() });
@@ -155,13 +146,37 @@ exports.getAllProducts = async (req, res) => {
             const cons = await LoaiCon.find({ idLoaiCha: { $in: chaIds } });
             const conIds = cons.map(c => c._id);
 
-            // 4. Gán điều kiện lọc: Sản phẩm phải có theLoaiCon nằm trong danh sách ID cấp 3 này
-            query.theLoaiCon = { $in: conIds };
+            // 4. 🌟 Xây dựng query đa tầng:
+            // Lấy sản phẩm nếu khớp trực tiếp ID Ông, hoặc thuộc các Cha, hoặc thuộc các Con
+            query.$or = [
+                { theLoaiOng: ong._id },
+                { theLoaiCha: { $in: chaIds } },
+                { theLoaiCon: { $in: conIds } }
+            ];
         } else {
-            // Nếu truyền mã Ông sai/không tồn tại, trả về rỗng luôn để tránh lấy nhầm toàn bộ SP
             return res.status(200).json({ products: [], totalProducts: 0 });
         }
     }
+    // if (theLoai) {
+    //     // 1. Tìm xem maLoaiOng này ứng với _id nào
+    //     const ong = await LoaiOng.findOne({ maLoaiOng: theLoai.toUpperCase() });
+        
+    //     if (ong) {
+    //         // 2. Tìm tất cả các Loại Cha thuộc Loại Ông này
+    //         const chas = await LoaiCha.find({ idLoaiOng: ong._id });
+    //         const chaIds = chas.map(c => c._id);
+
+    //         // 3. Tìm tất cả các Loại Con thuộc danh sách Loại Cha vừa tìm được
+    //         const cons = await LoaiCon.find({ idLoaiCha: { $in: chaIds } });
+    //         const conIds = cons.map(c => c._id);
+
+    //         // 4. Gán điều kiện lọc: Sản phẩm phải có theLoaiCon nằm trong danh sách ID cấp 3 này
+    //         query.theLoaiCon = { $in: conIds };
+    //     } else {
+    //         // Nếu truyền mã Ông sai/không tồn tại, trả về rỗng luôn để tránh lấy nhầm toàn bộ SP
+    //         return res.status(200).json({ products: [], totalProducts: 0 });
+    //     }
+    // }
     if (mauSac) query.mauSac = { $in: [mauSac] };
     if (isShow !== undefined) query.isShow = isShow;
     
