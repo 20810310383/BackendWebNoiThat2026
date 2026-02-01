@@ -38,45 +38,99 @@ exports.getAllProducts = async (req, res) => {
       ];
     }
 
-    // 🌟 LOGIC LỌC THEO LOẠI ÔNG (CẤP 1)
+    // 🌟 LOGIC LỌC THEO LOẠI ÔNG (CẤP 1) - Tối ưu cho cả SP không có cấp con
     if (idLoaiOng) {
       // 1. Tìm tất cả các Loại Cha thuộc Loại Ông này
-      const chas = await LoaiCha.find({ idLoaiOng })
+      const chas = await LoaiCha.find({ idLoaiOng });
       const chaIds = chas.map(c => c._id);
 
-      // 2. Tìm tất cả các Loại Con thuộc danh sách Loại Cha vừa tìm được
-      const cons = await LoaiCon.find({ idLoaiCha: { $in: chaIds } })
+      // 2. Tìm tất cả các Loại Con thuộc các Loại Cha trên (để phục vụ tìm kiếm sâu)
+      const cons = await LoaiCon.find({ idLoaiCha: { $in: chaIds } });
       const conIds = cons.map(c => c._id);
 
-      // 3. Gán điều kiện lọc vào query sản phẩm
-      // Tìm các sản phẩm có theLoaiCon nằm trong danh sách IDs cấp 3 này
-      query.theLoaiCon = { $in: conIds };
+      // 3. Xây dựng điều kiện lọc đa tầng bằng $or
+      // Tìm sản phẩm khớp ID Ông, hoặc nằm trong danh sách Cha, hoặc nằm trong danh sách Con
+      query.$or = [
+        { theLoaiOng: idLoaiOng },
+        { theLoaiCha: { $in: chaIds } },
+        { theLoaiCon: { $in: conIds } }
+      ];
     }
 
-    // Logic lọc nâng cao theo mã loại
+    // Logic lọc nâng cao theo mã loại (Ông - Cha - Con)
     if (maLoaiOng || maLoaiCha || maLoaiCon) {
-      let targetConIds = [];
+      let conCondition = [];
+      let chaCondition = [];
+      let ongCondition = [];
 
+      // 1. Xử lý cấp LOẠI CON
       if (maLoaiCon) {
-        const con = await LoaiCon.findOne({ maLoaiCon })
-        if (con) targetConIds = [con._id];
-      } else if (maLoaiCha) {
-        const cha = await LoaiCha.findOne({ maLoaiCha })
+        const con = await LoaiCon.findOne({ maLoaiCon: maLoaiCon.toUpperCase() });
+        if (con) conCondition = [con._id];
+      }
+
+      // 2. Xử lý cấp LOẠI CHA
+      if (maLoaiCha) {
+        const cha = await LoaiCha.findOne({ maLoaiCha: maLoaiCha.toUpperCase() });
         if (cha) {
-          const cons = await LoaiCon.find({ idLoaiCha: cha._id })
-          targetConIds = cons.map(c => c._id);
-        }
-      } else if (maLoaiOng) {
-        const ong = await LoaiOng.findOne({ maLoaiOng })
-        if (ong) {
-          const chas = await LoaiCha.find({ idLoaiOng: ong._id })
-          const cons = await LoaiCon.find({ idLoaiCha: { $in: chas.map(c => c._id) } })
-          targetConIds = cons.map(c => c._id);
+          chaCondition = [cha._id];
+          // Lấy thêm các con thuộc cha này (để tìm cả SP ở cấp con)
+          const consOfCha = await LoaiCon.find({ idLoaiCha: cha._id });
+          const ids = consOfCha.map(c => c._id);
+          conCondition = conCondition.length > 0 
+            ? conCondition.filter(id => ids.some(cid => cid.equals(id))) // Giao thoa nếu đã có maLoaiCon
+            : ids;
         }
       }
-      
-      query.theLoaiCon = { $in: targetConIds };
+
+      // 3. Xử lý cấp LOẠI ÔNG (Nếu chưa lọc bởi Cha/Con hoặc muốn lọc hẹp lại)
+      if (maLoaiOng && !maLoaiCha && !maLoaiCon) {
+        const ong = await LoaiOng.findOne({ maLoaiOng: maLoaiOng.toUpperCase() });
+        if (ong) {
+          ongCondition = [ong._id];
+          const chasOfOng = await LoaiCha.find({ idLoaiOng: ong._id });
+          const chaIds = chasOfOng.map(c => c._id);
+          chaCondition = chaIds;
+
+          const consOfOng = await LoaiCon.find({ idLoaiCha: { $in: chaIds } });
+          conCondition = consOfOng.map(c => c._id);
+        }
+      }
+
+      // 🌟 XÂY DỰNG QUERY TỔNG HỢP ($or)
+      // Tìm sản phẩm thỏa mãn 1 trong các cấp đã lọc
+      query.$and = query.$and || [];
+      query.$and.push({
+        $or: [
+          { theLoaiCon: { $in: conCondition } },
+          { theLoaiCha: { $in: chaCondition } },
+          { theLoaiOng: { $in: ongCondition } }
+        ]
+      });
     }
+    // if (maLoaiOng || maLoaiCha || maLoaiCon) {
+    //   let targetConIds = [];
+
+    //   if (maLoaiCon) {
+    //     const con = await LoaiCon.findOne({ maLoaiCon })
+    //     if (con) targetConIds = [con._id];
+    //   } else if (maLoaiCha) {
+    //     const cha = await LoaiCha.findOne({ maLoaiCha })
+    //     if (cha) {
+    //       const cons = await LoaiCon.find({ idLoaiCha: cha._id })
+    //       targetConIds = cons.map(c => c._id);
+    //     }
+    //   } else if (maLoaiOng) {
+    //     const ong = await LoaiOng.findOne({ maLoaiOng })
+    //     if (ong) {
+    //       const chas = await LoaiCha.find({ idLoaiOng: ong._id })
+    //       const cons = await LoaiCon.find({ idLoaiCha: { $in: chas.map(c => c._id) } })
+    //       targetConIds = cons.map(c => c._id);
+    //     }
+    //   } 
+      
+    //   query.theLoaiCon = { $in: targetConIds };
+    // }
 
     // if (theLoai) {
     //   // Tìm xem maLoaiSanPham này ứng với _id nào
@@ -121,7 +175,7 @@ exports.getAllProducts = async (req, res) => {
 
     const count = await SanPham.countDocuments(query);
     const products = await SanPham.find(query)
-      .populate("theLoai")
+      .populate("theLoai theLoaiCon theLoaiCha theLoaiOng")
       .populate("mauSac", "tenMauSac maMauSac")
       .populate({
         path: 'theLoaiCon',
@@ -158,6 +212,7 @@ exports.getProductById = async (req, res) => {
       { new: true }
     )
     .populate("theLoai mauSac nguoiDang", "tenTheLoai maLoaiSanPham tenMauSac maMauSac hoTen")
+    .populate("theLoaiCon theLoaiCha theLoaiOng")
     .populate({
         path: 'theLoaiCon',
         populate: {
@@ -243,6 +298,7 @@ exports.getRelatedProducts = async (req, res) => {
     // .select("tieuDe anhDaiDien phanTramGiamGia bienThe maSanPham") // Chỉ lấy field cần thiết
     // .limit(4) // Thường lấy 4 hoặc 8 sản phẩm để chia grid cho đẹp
     .populate("theLoai mauSac nguoiDang", "tenTheLoai maLoaiSanPham tenMauSac maMauSac hoTen")
+    .populate("theLoaiCon theLoaiCha theLoaiOng")
     .populate({
         path: 'theLoaiCon',
         populate: {

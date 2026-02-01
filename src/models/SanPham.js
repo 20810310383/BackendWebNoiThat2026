@@ -24,8 +24,15 @@ const sanPhamSchema = new mongoose.Schema({
   theLoaiCon: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'LoaiCon',
+    required: false
+  },
+  theLoaiCha: { type: mongoose.Schema.Types.ObjectId, ref: 'LoaiCha', required: true },
+  theLoaiOng: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'LoaiOng',
     required: true
   },
+  
   
   nguoiDang: { type: mongoose.Schema.Types.ObjectId, ref: 'NguoiDung' },
   
